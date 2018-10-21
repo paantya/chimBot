@@ -7,7 +7,6 @@ import telebot.types as types
 import re
 import cash
 import config
-import chisla_fun
 
 #import configTest as config
 bot = telebot.TeleBot(config.token)
