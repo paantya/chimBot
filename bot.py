@@ -116,7 +116,8 @@ def any_msg(message):
     bot.send_message(message.chat.id, text, parse_mode='Markdown')
 
 if __name__ == '__main__':
-    try:
-        bot.polling(none_stop=True)
-    except Exception:
-        print('error Exception')
+    while True:
+        try:
+            bot.polling(none_stop=True)
+        except Exception:
+            print('error Exception')
