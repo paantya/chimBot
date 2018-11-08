@@ -12,6 +12,8 @@ import config
 import random
 
 # sphinx_gallery_thumbnail_number = 3
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 bgErr = 0.01
@@ -31,6 +33,7 @@ def handle_docs_audio(message):
         bot.send_message(message.chat.id, text, reply_to_message_id=message.message_id)
     else:
         try:
+
             file_info = bot.get_file(message.document.file_id)
             downloaded_file = bot.download_file(file_info.file_path)
             f = open(file_name, "wb")
@@ -43,13 +46,29 @@ def handle_docs_audio(message):
             minB = min(B)
             maxB = max(B)
 
-            bgs = [i for i in B if i <= (minB + bgErr)]
-            bg = sum(bgs) / len(bgs)
+            def dispersio(results):
+                # calculate mean
+                m = sum(results) / len(results)
+                # calculate variance using a list comprehension
+                var_res = sum([(xi - m) ** 2 for xi in results]) / len(results)
+                return var_res
+
+            d_id = 2
+            file_dispersio = open("dispersio.txt",'r')
+            param_dispersio = float(file_dispersio.readline())
+            file_dispersio.close()
+            while dispersio(B[:d_id+1]) < param_dispersio:
+                d_id += 1
+
+            bg = sum(B[:d_id]) / len(B[:d_id])
             BdBG = B - bg
 
             def B300(x):
+                file300 = open("bot.txt",'r')
+                pr = int(file300.readline())
+                file300.close()
                 k = 0
-                while x[k] < 300:
+                while x[k] < pr:
                     k += 1
                 return k
 
@@ -59,49 +78,69 @@ def handle_docs_audio(message):
                     k += 1
                 return k
 
-            trs = [(BdBG[i + 1] + BdBG[i]) * (A[i + 1] - A[i]) / 2 for i in range(BBg(B, bg), B300(A))]
-            trSum = sum(trs)
-            text = "sum = `{}`\nmax = `{}`\nsbg = `{}`".format(trSum, maxB, bg)
+            trs = [(BdBG[i + 1] + BdBG[i]) * (A[i + 1] - A[i]) / 2 for i in range(d_id, B300(A))]
+            tr_sum = sum(trs)
+            trs_pls = [(BdBG[i + 1] + BdBG[i]) * (A[i + 1] - A[i]) / 2 for i in range(d_id-1, B300(A))]
+            tr_sum_pls = sum(trs_pls)
+            text = "sum = `{}`\nsam = `{}`\nmax = `{}`\nsbg = `{}`".format(tr_sum, tr_sum_pls, maxB, bg)
             bot.send_message(message.chat.id, text, parse_mode = "Markdown", reply_to_message_id = message.message_id)
+
+            list_dispersio = [str(i)+': `'+str(dispersio(B[:i]))+'`' for i in range(2,BBg(B, bg)+2)]
+            tmp_disperssio = "\n".join(list_dispersio)
+            text = "dispersio:\n{}".format(tmp_disperssio)
+            bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_to_message_id=message.message_id)
 
             action_string = 'upload_photo'
             bot.send_chat_action(message.chat.id, action_string)
 
-            plt.figure(figsize=(17, 7))
+            f1 = plt.figure(figsize=(17, 7))
             plt.plot(A, B, ':')
             line_max, = plt.plot(A, [maxB for i in A], '-.', color='b', label='max intensity')
             line_sbg, =plt.plot(A, [bg for i in A], '-.', label='sr. bg')
-            line_bg, = plt.plot(A[:BBg(B, bg)], B[:BBg(B, bg)], 'o', color='r', label = 'bg')
-            line_sg, = plt.plot(A[BBg(B, bg):B300(A) + 1], B[BBg(B, bg):B300(A) + 1], '^', color='g', label = 'signal')
+            line_bg7, = plt.plot(A[:BBg(B, bg)], B[:BBg(B, bg)], 'o', color='g')
+            line_bg, = plt.plot(A[:d_id], B[:d_id], 'o', color='r', label = 'bg')
+            line_sg, = plt.plot(A[d_id:B300(A) + 1], B[d_id:B300(A) + 1], '^', color='g', label = 'signal')
             plt.xlabel('time')
             plt.ylabel('intensity')
             plt.title('the '+file_name)
-            plt.legend([line_sg, line_bg, line_max, line_sbg], ['signal', 'background', 'max intensity = '+str(maxB),
+            plt.legend([line_sg, line_bg,line_bg7, line_max, line_sbg], ['signal', 'background','candidate background ', 'max intensity = '+str(maxB),
                                                                 'sr background = '+str(bg)])
             plt.grid()
             plt.savefig('pic' + file_name[:-4] + '_all.png')
+            plt.close(f1)
 
             photo = open('pic' + file_name[:-4] + '_all.png', 'rb')
             bot.send_document(message.chat.id, photo, reply_to_message_id=message.message_id)
+            photo.close()
+            if os.path.exists('pic' + file_name[:-4] + '_all.png'):
+                os.remove('pic' + file_name[:-4] + '_all.png')
 
-            plt.figure(figsize=(17, 7))
+            f2 = plt.figure(figsize=(17, 7))
             plt.plot(A[:BBg(B, bg)+1], B[:BBg(B, bg)+1], ':')
             line_sbg, = plt.plot(A[:BBg(B, bg) + 1], [bg for i in A[:BBg(B, bg) + 1]], '-.', label='sr. bg')
-            line_bg, = plt.plot(A[:BBg(B, bg)], B[:BBg(B, bg)], 'o', color='r')
+            line_bg7, = plt.plot(A[:BBg(B, bg)], B[:BBg(B, bg)], 'o', color='g')
+            line_bg, = plt.plot(A[:d_id], B[:d_id], 'o', color='r')
             line_sg, = plt.plot(A[BBg(B, bg)], B[BBg(B, bg)], '^', color='g')
             plt.xlabel('time')
             plt.ylabel('intensity')
             plt.title('the background '+file_name)
-            plt.legend([line_sg, line_bg, line_sbg], ['signal', 'background', 'sr background = '+str(bg)])
+            plt.legend([line_sg, line_bg, line_bg7, line_sbg], ['signal', 'background', 'candidate background', 'sr background = '+str(bg)])
             plt.grid()
             plt.savefig('pic' + file_name[:-4] + '_bg.png')
+            plt.close(f2)
 
             photo = open('pic' + file_name[:-4] + '_bg.png', 'rb')
             bot.send_document(message.chat.id, photo, reply_to_message_id=message.message_id)
+            photo.close()
+            if os.path.exists('pic'+file_name[:-4]+'_bg.png'):
+                os.remove('pic'+file_name[:-4]+'_bg.png')
+
         except Exception:
             text = 'Что-то пошло не так :С\n' \
                    'Попробуйсте ещё раз, если не получится, то что-то не так с содержинием файла'
             bot.send_message(message.chat.id, text, parse_mode = "Markdown", reply_to_message_id = message.message_id)
+        finally:
+            plt.close("all")
             if os.path.exists(file_name):
                 os.remove(file_name)
             if os.path.exists('pic'+file_name[:-4]+'_all.png'):
@@ -109,10 +148,61 @@ def handle_docs_audio(message):
             if os.path.exists('pic'+file_name[:-4]+'_bg.png'):
                 os.remove('pic'+file_name[:-4]+'_bg.png')
 
+@bot.message_handler(commands=['status'])
+def set_botten(message):
+    f_st1 = open("bot.txt", 'r')
+    pr1 = int(f_st1.readline())
+    f_st1.close()
+
+    f_st2 = open("dispersio.txt", 'r')
+    pr2 = float(f_st2.readline())
+    f_st2.close()
+
+    text = "Текущее значени параметра отсечения: **{}**.\nТекущее значени параметра разброса фона: **{}**.".format(pr1,pr2)
+    bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_to_message_id=message.message_id)
+
+@bot.message_handler(commands=['set_botten'])
+def set_botten(message):
+    if len(message.text)<13 or not message.text.split()[-1].isdecimal() or int(message.text.split()[-1]) < 2 or int(message.text.split()[-1]) > 1000:
+        f_bot = open("dispersio.txt", 'r')
+        bot_pr = float(f_bot.readline())
+        f_bot.close()
+        text = "Введите корректное значени верхней границы.\nЦелое число от 2 до 1000. Сейчас: {}\n__По умолчанию рекомендуется значение 300.".format(f_bot)
+        bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_to_message_id=message.message_id)
+    else:
+        f_bot = open('bot.txt', 'w')
+        f_bot.write(message.text.split()[-1])
+        f_bot.close()
+        text = "Мы заменили значение верхней границы на **{}**.".format(message.text.split()[-1])
+        bot.send_message(message.chat.id, text, parse_mode="Markdown")
+
+@bot.message_handler(commands=['set_dispersio'])
+def set_dispersio(message):
+    import re
+    def is_number_regex(s):
+        """ Returns True is string is a number. """
+        if re.match("^\d+?\.?\d+?e?-?\d+?$", s) is None:
+            return False
+        return True
+    if len(message.text) < 15 or not is_number_regex(message.text.split(' ')[-1]) or float(message.text.split()[-1]) < 0:
+        f_dis = open("dispersio.txt", 'r')
+        dis_pr = float(f_dis.readline())
+        f_dis.close()
+        text = "Введите корректное значени верхней границы.\nНужно число больше нуля. Сейчас: {}\n__По умолчанию рекомендуется значение 1.0e-6.".format(dis_pr)
+        bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_to_message_id=message.message_id)
+    else:
+        f_bot = open('dispersio.txt', 'w')
+        f_bot.write(message.text.split(" ")[-1])
+        f_bot.close()
+        text = "Мы заменили значение верхней границы на **{}**.".format(message.text.split(" ")[-1])
+        bot.send_message(message.chat.id, text, parse_mode="Markdown")
+
+
 # Обычный режим
 @bot.message_handler(content_types=["text"])
 def any_msg(message):
-    text = random.choice(['😁','🙈','✨','🌸','🍁','🍀','🎏','🐙','🐧','🐨','🐳','🐼','👻','👾'])
+    sml = (['😁','🙈','✨','🌸','🍁','🍀','🎏','🐙','🐧','🐨','🐳','🐼','👻','👾'])
+    text = sml[message.date % len(sml)]
     bot.send_message(message.chat.id, text, parse_mode='Markdown')
 
 if __name__ == '__main__':
