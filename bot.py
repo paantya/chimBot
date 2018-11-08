@@ -164,10 +164,10 @@ def set_botten(message):
 @bot.message_handler(commands=['set_botten'])
 def set_botten(message):
     if len(message.text)<13 or not message.text.split()[-1].isdecimal() or int(message.text.split()[-1]) < 2 or int(message.text.split()[-1]) > 1000:
-        f_bot = open("dispersio.txt", 'r')
+        f_bot = open("bot.txt", 'r')
         bot_pr = float(f_bot.readline())
         f_bot.close()
-        text = "Введите корректное значени верхней границы.\nЦелое число от 2 до 1000. Сейчас: {}\n__По умолчанию рекомендуется значение 300.".format(f_bot)
+        text = "Введите корректное значени верхней границы.\nЦелое число от 2 до 1000. Сейчас: {}\n__По умолчанию рекомендуется значение 300.".format(bot_pr)
         bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_to_message_id=message.message_id)
     else:
         f_bot = open('bot.txt', 'w')
