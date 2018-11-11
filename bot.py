@@ -60,8 +60,6 @@ def handle_docs_audio(message):
             while dispersio(B[:d_id+1]) < param_dispersio:
                 d_id += 1
 
-            bg = sum(B[:d_id]) / len(B[:d_id])
-            BdBG = B - bg
 
             def B300(x):
                 file300 = open("bot.txt",'r')
@@ -78,9 +76,12 @@ def handle_docs_audio(message):
                     k += 1
                 return k
 
-            trs = [(BdBG[i + 1] + BdBG[i]) * (A[i + 1] - A[i]) / 2 for i in range(d_id, B300(A))]
+            bg = sum(B[:BBg(B, minB)]) / len(B[:BBg(B, minB)])
+            BdBG = B - bg
+
+            trs = [(BdBG[i + 1] + BdBG[i]) * (A[i + 1] - A[i]) / 2 for i in range(BBg(B, minB), B300(A))]
             tr_sum = sum(trs)
-            trs_pls = [(BdBG[i + 1] + BdBG[i]) * (A[i + 1] - A[i]) / 2 for i in range(d_id-1, B300(A))]
+            trs_pls = [(BdBG[i + 1] + BdBG[i]) * (A[i + 1] - A[i]) / 2 for i in range(BBg(B, minB)-1, B300(A))]
             tr_sum_pls = sum(trs_pls)
             text = "sum = `{}`\nsam = `{}`\nmax = `{}`\nsbg = `{}`".format(tr_sum, tr_sum_pls, maxB, bg)
             bot.send_message(message.chat.id, text, parse_mode = "Markdown", reply_to_message_id = message.message_id)
@@ -98,8 +99,8 @@ def handle_docs_audio(message):
             line_max, = plt.plot(A, [maxB for i in A], '-.', color='b', label='max intensity')
             line_sbg, =plt.plot(A, [bg for i in A], '-.', label='sr. bg')
             line_bg7, = plt.plot(A[:BBg(B, bg)], B[:BBg(B, bg)], 'o', color='g')
-            line_bg, = plt.plot(A[:d_id], B[:d_id], 'o', color='r', label = 'bg')
-            line_sg, = plt.plot(A[d_id:B300(A) + 1], B[d_id:B300(A) + 1], '^', color='g', label = 'signal')
+            line_bg, = plt.plot(A[:BBg(B, minB)], B[:BBg(B, minB)], 'o', color='r', label = 'bg')
+            line_sg, = plt.plot(A[BBg(B, minB):B300(A) + 1], B[BBg(B, minB):B300(A) + 1], '^', color='g', label = 'signal')
             plt.xlabel('time')
             plt.ylabel('intensity')
             plt.title('the '+file_name)
@@ -119,7 +120,7 @@ def handle_docs_audio(message):
             plt.plot(A[:BBg(B, bg)+1], B[:BBg(B, bg)+1], ':')
             line_sbg, = plt.plot(A[:BBg(B, bg) + 1], [bg for i in A[:BBg(B, bg) + 1]], '-.', label='sr. bg')
             line_bg7, = plt.plot(A[:BBg(B, bg)], B[:BBg(B, bg)], 'o', color='g')
-            line_bg, = plt.plot(A[:d_id], B[:d_id], 'o', color='r')
+            line_bg, = plt.plot(A[:BBg(B, minB)], B[:BBg(B, minB)], 'o', color='r')
             line_sg, = plt.plot(A[BBg(B, bg)], B[BBg(B, bg)], '^', color='g')
             plt.xlabel('time')
             plt.ylabel('intensity')
