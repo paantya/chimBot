@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import telebot
+from telebot import types
 
 #import re
 import os
@@ -19,6 +20,26 @@ import matplotlib.pyplot as plt
 bgErr = 0.01
 #import configTest as config
 bot = telebot.TeleBot(config.token)
+
+@bot.callback_query_handler(func=lambda call: True)
+def callback_inline(call):
+    # Если сообщение из чата с ботом
+    if call.message:
+        if call.data == "status":
+            f_cst1 = open("bot.txt", 'r')
+            pr1c = int(f_cst1.readline())
+            f_cst1.close()
+            f_cst2 = open("dispersio.txt", 'r')
+            pr2c = float(f_cst2.readline())
+            f_cst2.close()
+            text = "Time: {}\nDispersio: {}.".format(pr1c, pr2c)
+            bot.answer_callback_query(callback_query_id=call.id, show_alert=True, text=text)
+        else:
+            f_bot = open('dispersio.txt', 'w')
+            f_bot.write(call.data)
+            f_bot.close()
+            bot.answer_callback_query(callback_query_id=call.id, show_alert=False, text="Dispersio: {}".format(call.data))
+
 
 # Обработчик для документов
 @bot.message_handler(content_types=['document'])
@@ -57,7 +78,7 @@ def handle_docs_audio(message):
             file_dispersio = open("dispersio.txt",'r')
             param_dispersio = float(file_dispersio.readline())
             file_dispersio.close()
-            while dispersio(B[:d_id+1]) < param_dispersio:
+            while dispersio(B[:d_id+1]) <= param_dispersio:
                 d_id += 1
 
 
@@ -76,20 +97,28 @@ def handle_docs_audio(message):
                     k += 1
                 return k
 
-            bg = sum(B[:BBg(B, minB)]) / len(B[:BBg(B, minB)])
+            bg = sum(B[:d_id]) / len(B[:d_id])
             BdBG = B - bg
 
-            trs = [(BdBG[i + 1] + BdBG[i]) * (A[i + 1] - A[i]) / 2 for i in range(BBg(B, minB), B300(A))]
+            trs = [(BdBG[i + 1] + BdBG[i]) * (A[i + 1] - A[i]) / 2 for i in range(d_id, B300(A))]
             tr_sum = sum(trs)
-            trs_pls = [(BdBG[i + 1] + BdBG[i]) * (A[i + 1] - A[i]) / 2 for i in range(BBg(B, minB)-1, B300(A))]
+            trs_pls = [(BdBG[i + 1] + BdBG[i]) * (A[i + 1] - A[i]) / 2 for i in range(d_id-1, B300(A))]
             tr_sum_pls = sum(trs_pls)
-            text = "sum = `{}`\nsam = `{}`\nmax = `{}`\nsbg = `{}`".format(tr_sum, tr_sum_pls, maxB, bg)
-            bot.send_message(message.chat.id, text, parse_mode = "Markdown", reply_to_message_id = message.message_id)
+            text = "sum = `{}`\nsam = `{}`\nmax = `{}`\nsbg = `{}`\ndispersio:".format(tr_sum, tr_sum_pls, maxB, bg)
 
-            list_dispersio = [str(i)+': `'+str(dispersio(B[:i]))+'`' for i in range(2,BBg(B, bg)+2)]
-            tmp_disperssio = "\n".join(list_dispersio)
-            text = "dispersio:\n{}".format(tmp_disperssio)
-            bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_to_message_id=message.message_id)
+            keyboard = types.InlineKeyboardMarkup()
+            old_d = -1
+            for i in range(2, BBg(B, bg) + 2):
+                if old_d <= dispersio(B[:i]):
+                    callback_button = types.InlineKeyboardButton(
+                        text="{}: {}".format(i, dispersio(B[:i])),
+                        callback_data="{}".format(1.00001 * dispersio(B[:i]))
+                    )
+                    keyboard.add(callback_button)
+                    old_d = dispersio(B[:i])
+            callback_button = types.InlineKeyboardButton(text="status", callback_data="status")
+            keyboard.add(callback_button)
+            bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_to_message_id=message.message_id,reply_markup=keyboard)
 
             action_string = 'upload_photo'
             bot.send_chat_action(message.chat.id, action_string)
@@ -99,8 +128,8 @@ def handle_docs_audio(message):
             line_max, = plt.plot(A, [maxB for i in A], '-.', color='b', label='max intensity')
             line_sbg, =plt.plot(A, [bg for i in A], '-.', label='sr. bg')
             line_bg7, = plt.plot(A[:BBg(B, bg)], B[:BBg(B, bg)], 'o', color='g')
-            line_bg, = plt.plot(A[:BBg(B, minB)], B[:BBg(B, minB)], 'o', color='r', label = 'bg')
-            line_sg, = plt.plot(A[BBg(B, minB):B300(A) + 1], B[BBg(B, minB):B300(A) + 1], '^', color='g', label = 'signal')
+            line_bg, = plt.plot(A[:d_id], B[:d_id], 'o', color='r', label = 'bg')
+            line_sg, = plt.plot(A[BBg(B, bg):B300(A) + 1], B[BBg(B, bg):B300(A) + 1], '^', color='g', label = 'signal')
             plt.xlabel('time')
             plt.ylabel('intensity')
             plt.title('the '+file_name)
@@ -120,7 +149,7 @@ def handle_docs_audio(message):
             plt.plot(A[:BBg(B, bg)+1], B[:BBg(B, bg)+1], ':')
             line_sbg, = plt.plot(A[:BBg(B, bg) + 1], [bg for i in A[:BBg(B, bg) + 1]], '-.', label='sr. bg')
             line_bg7, = plt.plot(A[:BBg(B, bg)], B[:BBg(B, bg)], 'o', color='g')
-            line_bg, = plt.plot(A[:BBg(B, minB)], B[:BBg(B, minB)], 'o', color='r')
+            line_bg, = plt.plot(A[:d_id], B[:d_id], 'o', color='r')
             line_sg, = plt.plot(A[BBg(B, bg)], B[BBg(B, bg)], '^', color='g')
             plt.xlabel('time')
             plt.ylabel('intensity')
@@ -149,8 +178,11 @@ def handle_docs_audio(message):
             if os.path.exists('pic'+file_name[:-4]+'_bg.png'):
                 os.remove('pic'+file_name[:-4]+'_bg.png')
 
+
+
+
 @bot.message_handler(commands=['status'])
-def set_botten(message):
+def set_status(message):
     f_st1 = open("bot.txt", 'r')
     pr1 = int(f_st1.readline())
     f_st1.close()
