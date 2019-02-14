@@ -104,7 +104,7 @@ def handle_docs_audio(message):
             tr_sum = sum(trs)
             trs_pls = [(BdBG[i + 1] + BdBG[i]) * (A[i + 1] - A[i]) / 2 for i in range(d_id-1, B300(A))]
             tr_sum_pls = sum(trs_pls)
-            text = "sum = `{}`\nsam = `{}`\nmax = `{}`\nsbg = `{}`\ndispersio:".format(tr_sum, tr_sum_pls, maxB, bg)
+            text = "sum = `{}`\nsam = `{}`\nmax = `{}`\nsbg = `{}`\nmax - sbg = \n`{}`\ndispersio: -1".format(tr_sum, tr_sum_pls, maxB, bg, (maxB - bg))
 
             keyboard = types.InlineKeyboardMarkup()
             old_d = -1
@@ -118,14 +118,19 @@ def handle_docs_audio(message):
                     old_d = dispersio(B[:i])
             callback_button = types.InlineKeyboardButton(text="status", callback_data="status")
             keyboard.add(callback_button)
-            bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_to_message_id=message.message_id,reply_markup=keyboard)
+
+            bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_to_message_id=message.message_id,
+                             reply_markup=keyboard
+                             )
+
 
             action_string = 'upload_photo'
             bot.send_chat_action(message.chat.id, action_string)
+            df[[0,1]].to_csv(file_name, sep=' ', encoding='utf-8')
 
             f1 = plt.figure(figsize=(17, 7))
-            plt.plot(A, B, ':')
-            line_max, = plt.plot(A, [maxB for i in A], '-.', color='b', label='max intensity')
+            plt.plot(A, B, '-', color = 'k')
+            line_max, = plt.plot(A, [maxB for i in A], ':', color='r', label='max intensity')
             line_sbg, =plt.plot(A, [bg for i in A], '-.', label='sr. bg')
             line_bg7, = plt.plot(A[:BBg(B, bg)], B[:BBg(B, bg)], 'o', color='g')
             line_bg, = plt.plot(A[:d_id], B[:d_id], 'o', color='r', label = 'bg')
@@ -133,17 +138,34 @@ def handle_docs_audio(message):
             plt.xlabel('time')
             plt.ylabel('intensity')
             plt.title('the '+file_name)
-            plt.legend([line_sg, line_bg,line_bg7, line_max, line_sbg], ['signal', 'background','candidate background ', 'max intensity = '+str(maxB),
-                                                                'sr background = '+str(bg)])
+            plt.legend([
+                line_sg,
+                line_bg,
+                line_bg7,
+                line_max,
+                line_sbg
+                ],
+                [
+                    'signal',
+                    'background',
+                    'candidate background ',
+                    'max intensity = '+str(maxB),
+                    'sr background = '+str(bg)
+                 ])
             plt.grid()
             plt.savefig('pic' + file_name[:-4] + '_all.png')
             plt.close(f1)
+            #for t,x in zip(A[BBg(B, bg):B300(A) + 1], B[BBg(B, bg):B300(A) + 1]):
+            #    print("{} {}".format(t,x))
+
+
 
             photo = open('pic' + file_name[:-4] + '_all.png', 'rb')
             bot.send_document(message.chat.id, photo, reply_to_message_id=message.message_id)
             photo.close()
             if os.path.exists('pic' + file_name[:-4] + '_all.png'):
                 os.remove('pic' + file_name[:-4] + '_all.png')
+
 
             f2 = plt.figure(figsize=(17, 7))
             plt.plot(A[:BBg(B, bg)+1], B[:BBg(B, bg)+1], ':')
@@ -165,18 +187,19 @@ def handle_docs_audio(message):
             if os.path.exists('pic'+file_name[:-4]+'_bg.png'):
                 os.remove('pic'+file_name[:-4]+'_bg.png')
 
+
         except Exception:
             text = 'Что-то пошло не так :С\n' \
                    'Попробуйсте ещё раз, если не получится, то что-то не так с содержинием файла'
             bot.send_message(message.chat.id, text, parse_mode = "Markdown", reply_to_message_id = message.message_id)
         finally:
-            plt.close("all")
+            #plt.close("all")
             if os.path.exists(file_name):
                 os.remove(file_name)
             if os.path.exists('pic'+file_name[:-4]+'_all.png'):
                 os.remove('pic'+file_name[:-4]+'_all.png')
-            if os.path.exists('pic'+file_name[:-4]+'_bg.png'):
-                os.remove('pic'+file_name[:-4]+'_bg.png')
+            #if os.path.exists('pic'+file_name[:-4]+'_bg.png'):
+            #    os.remove('pic'+file_name[:-4]+'_bg.png')
 
 
 
