@@ -21,23 +21,37 @@ bgErr = 0.01
 #import configTest as config
 bot = telebot.TeleBot(config.token)
 
+def get_times():
+    with open("bot.txt", 'r') as f_cst1:
+        pr1c_ = int(f_cst1.readline())
+    return pr1c_
+
+def write_time(data_):
+    with open("bot.txt", 'r') as f_cst4:
+        f_cst4.write(data_)
+
+def get_dispersio():
+    with open("dispersio.txt", 'r') as f_cst2:
+        pr2c_ = float(f_cst2.readline())
+    return pr2c_
+
+def write_dispersio(data_):
+    with open("dispersio.txt", 'r') as f_cst3:
+        f_cst3.write(data_)
+
+
+
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
     # Если сообщение из чата с ботом
     if call.message:
         if call.data == "status":
-            f_cst1 = open("bot.txt", 'r')
-            pr1c = int(f_cst1.readline())
-            f_cst1.close()
-            f_cst2 = open("dispersio.txt", 'r')
-            pr2c = float(f_cst2.readline())
-            f_cst2.close()
+            pr1c = get_times()
+            pr2c = get_dispersio()
             text = "Time: {}\nDispersio: {}.".format(pr1c, pr2c)
             bot.answer_callback_query(callback_query_id=call.id, show_alert=True, text=text)
         else:
-            f_bot = open('dispersio.txt', 'w')
-            f_bot.write(call.data)
-            f_bot.close()
+            write_dispersio(call.data)
             bot.answer_callback_query(callback_query_id=call.id, show_alert=False, text="Dispersio: {}".format(call.data))
 
 
@@ -54,7 +68,6 @@ def handle_docs_audio(message):
         bot.send_message(message.chat.id, text, reply_to_message_id=message.message_id)
     else:
         try:
-
             file_info = bot.get_file(message.document.file_id)
             downloaded_file = bot.download_file(file_info.file_path)
             f = open(file_name, "wb")
@@ -75,17 +88,13 @@ def handle_docs_audio(message):
                 return var_res
 
             d_id = 2
-            file_dispersio = open("dispersio.txt",'r')
-            param_dispersio = float(file_dispersio.readline())
-            file_dispersio.close()
+            param_dispersio = get_dispersio()
             while dispersio(B[:d_id+1]) <= param_dispersio:
                 d_id += 1
 
 
             def B300(x):
-                file300 = open("bot.txt",'r')
-                pr = int(file300.readline())
-                file300.close()
+                pr = get_times()
                 k = 0
                 while x[k] < pr:
                     k += 1
@@ -206,13 +215,8 @@ def handle_docs_audio(message):
 
 @bot.message_handler(commands=['status'])
 def set_status(message):
-    f_st1 = open("bot.txt", 'r')
-    pr1 = int(f_st1.readline())
-    f_st1.close()
-
-    f_st2 = open("dispersio.txt", 'r')
-    pr2 = float(f_st2.readline())
-    f_st2.close()
+    pr1 = get_times()
+    pr2 = get_dispersio()
 
     text = "Текущее значени параметра отсечения: **{}**.\nТекущее значени параметра разброса фона: **{}**.".format(pr1,pr2)
     bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_to_message_id=message.message_id)
@@ -220,15 +224,11 @@ def set_status(message):
 @bot.message_handler(commands=['set_botten'])
 def set_botten(message):
     if len(message.text)<13 or not message.text.split()[-1].isdecimal() or int(message.text.split()[-1]) < 2 or int(message.text.split()[-1]) > 1000:
-        f_bot = open("bot.txt", 'r')
-        bot_pr = float(f_bot.readline())
-        f_bot.close()
+        bot_pr = get_times()
         text = "Введите корректное значени верхней границы.\nЦелое число от 2 до 1000. Сейчас: {}\n__По умолчанию рекомендуется значение 300.".format(bot_pr)
         bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_to_message_id=message.message_id)
     else:
-        f_bot = open('bot.txt', 'w')
-        f_bot.write(message.text.split()[-1])
-        f_bot.close()
+        write_time(message.text.split()[-1])
         text = "Мы заменили значение верхней границы на **{}**.".format(message.text.split()[-1])
         bot.send_message(message.chat.id, text, parse_mode="Markdown")
 
@@ -241,15 +241,11 @@ def set_dispersio(message):
             return False
         return True
     if len(message.text) < 15 or not is_number_regex(message.text.split(' ')[-1]) or float(message.text.split()[-1]) < 0:
-        f_dis = open("dispersio.txt", 'r')
-        dis_pr = float(f_dis.readline())
-        f_dis.close()
+        dis_pr = get_dispersio()
         text = "Введите корректное значени верхней границы.\nНужно число больше нуля. Сейчас: {}\n__По умолчанию рекомендуется значение 1.0e-6.".format(dis_pr)
         bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_to_message_id=message.message_id)
     else:
-        f_bot = open('dispersio.txt', 'w')
-        f_bot.write(message.text.split(" ")[-1])
-        f_bot.close()
+        write_dispersio(message.text.split(" ")[-1])
         text = "Мы заменили значение верхней границы на **{}**.".format(message.text.split(" ")[-1])
         bot.send_message(message.chat.id, text, parse_mode="Markdown")
 
