@@ -27,7 +27,7 @@ def get_times():
     return pr1c_
 
 def write_time(data_):
-    with open("bot.txt", 'r') as f_cst4:
+    with open("bot.txt", 'w') as f_cst4:
         f_cst4.write(data_)
 
 def get_dispersio():
@@ -36,7 +36,7 @@ def get_dispersio():
     return pr2c_
 
 def write_dispersio(data_):
-    with open("dispersio.txt", 'r') as f_cst3:
+    with open("dispersio.txt", 'w') as f_cst3:
         f_cst3.write(data_)
 
 
