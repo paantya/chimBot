@@ -26,7 +26,7 @@ def get_times():
         pr1c_ = int(f_cst1.readline())
     return pr1c_
 
-def write_time(data_):
+def write_times(data_):
     with open("bot.txt", 'w') as f_cst4:
         f_cst4.write(data_)
 
@@ -228,7 +228,7 @@ def set_botten(message):
         text = "Введите корректное значени верхней границы.\nЦелое число от 2 до 1000. Сейчас: {}\n__По умолчанию рекомендуется значение 300.".format(bot_pr)
         bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_to_message_id=message.message_id)
     else:
-        write_time(message.text.split()[-1])
+        write_times(message.text.split()[-1])
         text = "Мы заменили значение верхней границы на **{}**.".format(message.text.split()[-1])
         bot.send_message(message.chat.id, text, parse_mode="Markdown")
 
